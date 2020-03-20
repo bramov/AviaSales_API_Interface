@@ -7,8 +7,7 @@ const formSearch = document.querySelector('.form-search'),
 
 
 const citiesAPI = 'http://api.travelpayouts.com/data/ru/cities.json',
-      aviasalesAPI = 'https://api.travelpayouts.com/v2/prices/latest?currency=usd&period_type=year&page=1&limit=30&show_to_affiliates=true&sorting=price&trip_class=0&token=';
-      keyAPI = '738929f7df0e5eff21f6cb943423a2f3';
+      calendar = 'https://min-prices.aviasales.ru/calendar_preload',
       proxy = 'https://cors-anywhere.herokuapp.com/';
 
 let cities = [];
@@ -36,6 +35,7 @@ const showCities = (input, list) => {
             const fixItem = item.name.toLowerCase();
             return fixItem.startsWith(input.value.toLowerCase());
         });
+        filterCity.sort((a, b) => a.name.localeCompare(b.name));
         filterCity.forEach((item) => {
             const li = document.createElement('li');
             li.classList.add('dropdown__city');
@@ -53,6 +53,22 @@ const clickOnCity = (event, input, list) => {
     }
 };
 
+const renderCheapDay = (cheapTicket) => {
+
+};
+
+const renderCheapYear = (cheapTickets) => {
+    const sorted = cheapTickets.sort((a, b) => a.value - b.value);
+    console.log(sorted);
+};
+
+const renderCheap = (data, date) => {
+    const cheapTicketYear = JSON.parse(data).best_prices;
+    const cheapTicketDay = cheapTicketYear.filter(el => el.depart_date === date);
+    renderCheapDay(cheapTicketDay);
+    renderCheapYear(cheapTicketYear);
+};
+
 
 inputCitiesFrom.addEventListener('input', () => {
     showCities(inputCitiesFrom, dropdownCitiesFrom);
@@ -60,21 +76,41 @@ inputCitiesFrom.addEventListener('input', () => {
 inputCitiesTo.addEventListener('input', () => {
     showCities(inputCitiesTo, dropdownCitiesTo);
 });
-dropdownCitiesFrom.addEventListener('click', () => {
+dropdownCitiesFrom.addEventListener('click', (event) => {
     clickOnCity(event, inputCitiesFrom, dropdownCitiesFrom);
 });
-dropdownCitiesTo.addEventListener('click', () => {
+dropdownCitiesTo.addEventListener('click', (event) => {
     clickOnCity(event, inputCitiesTo, dropdownCitiesTo);
 });
+formSearch.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const citiesFrom = cities.find((item) => inputCitiesFrom.value === item.name);
+    const citiesTo = cities.find((item) => inputCitiesTo.value === item.name);
+    if (!citiesFrom && !citiesTo) return;
+    const formData = {
+        from: citiesFrom.code,
+        to: citiesTo.code,
+        when: inputDateDepart.value
+    };
 
+    const requestString = `?depart_date=${formData.when}&origin=${formData.from}` +
+                          `&destination=${formData.to}&one_way=true`;
 
-/*
+    getData(calendar + requestString, (response) => {
+        renderCheap(response, formData.when);
+    });
+});
+
 getData(proxy + citiesAPI, (data) => {
     const dataCities = JSON.parse(data);
     cities = dataCities.filter(el => el.name);
 });
-*/
-getData(proxy + 'http://min-prices.aviasales.ru/calendar_preload?origin=SVX&destination=KGD&depart_date=2020-05-25&one_way=true', (data) => {
-    const objArr = (JSON.parse(data))['best_prices'];
-    console.log(objArr[0]);
+
+
+
+/*
+getData(proxy + calendar + '?origin=SVX&destination=KGD&depart_date=2020-05-25&one_way=true&token' + API_KEY, (data) => {
+    const cheapTicket = JSON.parse(data).best_prices.filter(item => item.depart_date === '2020-05-29')
+    console.log(cheapTicket);
 });
+*/
